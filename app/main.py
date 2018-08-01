@@ -35,20 +35,22 @@ def update_city(city_id):
 
     for district_info in city_info['district']:
         district = District(city.id, district_info)
-        logging.info('城市={}, 区域={}, 商圈数={}'.format(city.name, district.name, district.biz_circles_count))
+        logging.info('城市={}, 区域={}, 商圈数={}'.format(city.name, district.name,
+                                                   district.biz_circles_count))
         DISTRICT_MAP[district.name] = district.id
         db_session.merge(district)
 
         for biz_circle_info in district_info['bizcircle']:
             biz_circle = db_session.query(BizCircle).filter(
-                BizCircle.id == int(biz_circle_info['bizcircle_id'])
-            ).first()
+                BizCircle.id == int(biz_circle_info['bizcircle_id'])).first()
 
             if biz_circle:
                 # 记录已存在，可能需要更新 district_id
                 if district.id not in biz_circle.district_id:
                     # biz_circle.district_id.append()、district_id += 等方式都不能更新表
-                    biz_circle.district_id = biz_circle.district_id + [district.id]
+                    biz_circle.district_id = biz_circle.district_id + [
+                        district.id
+                    ]
             else:
                 biz_circle = BizCircle(city.id, district.id, biz_circle_info)
                 db_session.add(biz_circle)
@@ -66,8 +68,11 @@ def get_city_info(city_id):
     url = 'http://app.api.lianjia.com/config/config/initData'
 
     payload = {
-        'params': '{{"city_id": {}, "mobile_type": "android", "version": "8.0.1"}}'.format(city_id),
-        'fields': '{"city_info": "", "city_config_all": ""}'
+        'params':
+        '{{"city_id": {}, "mobile_type": "android", "version": "8.0.1"}}'.
+        format(city_id),
+        'fields':
+        '{"city_info": "", "city_config_all": ""}'
     }
 
     data = util.get_data(url, payload, method='POST')
@@ -100,14 +105,14 @@ def update_communities(city_id):
     biz_circles = db_session.query(BizCircle).filter(
         BizCircle.city_id == city_id,
         (BizCircle.communities_updated_at == None) |
-        (BizCircle.communities_updated_at < deadline)
-    ).all()
+        (BizCircle.communities_updated_at < deadline)).all()
 
     total_count = len(biz_circles)
     logging.info('需更新总商圈数量: {}'.format(total_count))
 
     for i, biz_circle in enumerate(biz_circles):
-        logging.info('进度={}/{}, 商圈={}'.format(i + 1, total_count, biz_circle.name, communities['count']))
+        logging.info('进度={}/{}, 商圈={}'.format(
+            i + 1, total_count, biz_circle.name, communities['count']))
         communities = get_communities_by_biz_circle(city_id, biz_circle.id)
         logging.info('小区数={}'.format(communities['count']))
         update_db(db_session, biz_circle, communities)
@@ -125,10 +130,7 @@ def get_communities_by_biz_circle(city_id, biz_circle_id):
 
     offset = 0
 
-    communities = {
-        'count': 0,
-        'list': []
-    }
+    communities = {'count': 0, 'list': []}
 
     while True:
         params = {
@@ -155,7 +157,10 @@ def get_communities_by_biz_circle(city_id, biz_circle_id):
 
     # 去重, 有时链家服务器抽风(或者本身数据就是错误的)... 返回的数据有重复的, 需要处理下
     # 如: http://sh.lianjia.com/xiaoqu/hengshanlu/
-    d = {community['community_id']: community for community in communities['list']}
+    d = {
+        community['community_id']: community
+        for community in communities['list']
+    }
     communities['list'] = d.values()
 
     return communities
@@ -169,13 +174,13 @@ def update_db(db_session, biz_circle, communities):
     更新小区信息, 商圈信息
     """
     db_session.query(Community).filter(
-        Community.biz_circle_id == biz_circle.id
-    ).delete()
+        Community.biz_circle_id == biz_circle.id).delete()
 
     for community_info in communities['list']:
         try:
             district_id = DISTRICT_MAP[community_info['district_name']]
-            community = Community(biz_circle.city_id, district_id, biz_circle.id, community_info)
+            community = Community(biz_circle.city_id, district_id,
+                                  biz_circle.id, community_info)
 
             # 去重 TODO
             cid = community.id
@@ -187,7 +192,8 @@ def update_db(db_session, biz_circle, communities):
         except Exception as e:
             # 返回的信息可能是错误的/不完整的, 如小区信息失效后返回的是不完整的信息
             # 如: http://sz.lianjia.com/xiaoqu/2414168277659446
-            logging.error('错误: 小区 id: {}; 错误信息: {}'.format(community_info['community_id'], repr(e)))
+            logging.error('错误: 小区 id: {}; 错误信息: {}'.format(
+                community_info['community_id'], repr(e)))
 
     biz_circle.communities_count = communities['count']
     biz_circle.communities_updated_at = datetime.now()
