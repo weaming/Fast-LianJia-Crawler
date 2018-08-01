@@ -133,9 +133,15 @@ def get_communities_by_biz_circle(city_id, biz_circle_id):
     communities = {'count': 0, 'list': []}
 
     while True:
+        # print status
         out = 'offset {} \r'.format(offset)
         sys.stdout.write(out)
         sys.stdout.flush()
+
+        # debug
+        # if offset > 50:
+        #     break
+
         params = {
             'bizcircle_id': biz_circle_id,
             'group_type': 'community',
@@ -180,18 +186,17 @@ def update_db(db_session, biz_circle, communities):
         Community.biz_circle_id == biz_circle.id).delete()
 
     for community_info in communities['list']:
+        # 去重 TODO
+        cid = community_info['community_id']
+        if cid in community_id_set:
+            print('ignore cid {}'.format(cid))
+            continue
+        community_id_set.add(cid)
+
         try:
             district_id = DISTRICT_MAP[community_info['district_name']]
             community = Community(biz_circle.city_id, district_id,
                                   biz_circle.id, community_info)
-
-            # 去重 TODO
-            cid = community.id
-            if cid in community_id_set:
-                print('ignore cid {}'.format(cid))
-                continue
-            community_id_set.add(cid)
-
             db_session.add(community)
         except Exception as e:
             # 返回的信息可能是错误的/不完整的, 如小区信息失效后返回的是不完整的信息
