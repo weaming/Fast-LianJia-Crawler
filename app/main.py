@@ -207,10 +207,7 @@ def update_db(db_session, biz_circle, communities):
     biz_circle.communities_count = communities['count']
     biz_circle.communities_updated_at = datetime.now()
 
-    try:
-        db_session.commit()
-    except Exception as e:
-        print(e)
+    db_session.commit()
 
 
 def proxy_patch():
