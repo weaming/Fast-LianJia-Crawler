@@ -107,8 +107,9 @@ def update_communities(city_id):
     logging.info('需更新总商圈数量: {}'.format(total_count))
 
     for i, biz_circle in enumerate(biz_circles):
+        logging.info('进度={}/{}, 商圈={}'.format(i + 1, total_count, biz_circle.name, communities['count']))
         communities = get_communities_by_biz_circle(city_id, biz_circle.id)
-        logging.info('进度={}/{}, 商圈={}, 小区数={}'.format(i + 1, total_count, biz_circle.name, communities['count']))
+        logging.info('小区数={}'.format(communities['count']))
         update_db(db_session, biz_circle, communities)
 
     db_session.close()
@@ -160,6 +161,9 @@ def get_communities_by_biz_circle(city_id, biz_circle_id):
     return communities
 
 
+community_id_set = set()
+
+
 def update_db(db_session, biz_circle, communities):
     """
     更新小区信息, 商圈信息
@@ -172,6 +176,13 @@ def update_db(db_session, biz_circle, communities):
         try:
             district_id = DISTRICT_MAP[community_info['district_name']]
             community = Community(biz_circle.city_id, district_id, biz_circle.id, community_info)
+
+            # 去重 TODO
+            cid = community.id
+            if cid in community_id_set:
+                continue
+            community_id_set.add(cid)
+
             db_session.add(community)
         except Exception as e:
             # 返回的信息可能是错误的/不完整的, 如小区信息失效后返回的是不完整的信息
@@ -181,7 +192,10 @@ def update_db(db_session, biz_circle, communities):
     biz_circle.communities_count = communities['count']
     biz_circle.communities_updated_at = datetime.now()
 
-    db_session.commit()
+    try:
+        db_session.commit()
+    except Exception as e:
+        print(e)
 
 
 def proxy_patch():
