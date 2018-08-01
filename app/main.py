@@ -111,8 +111,8 @@ def update_communities(city_id):
     logging.info('需更新总商圈数量: {}'.format(total_count))
 
     for i, biz_circle in enumerate(biz_circles):
-        logging.info('进度={}/{}, 商圈={}'.format(
-            i + 1, total_count, biz_circle.name, communities['count']))
+        logging.info('进度={}/{}, 商圈={}'.format(i + 1, total_count,
+                                              biz_circle.name))
         communities = get_communities_by_biz_circle(city_id, biz_circle.id)
         logging.info('小区数={}'.format(communities['count']))
         update_db(db_session, biz_circle, communities)
@@ -133,6 +133,9 @@ def get_communities_by_biz_circle(city_id, biz_circle_id):
     communities = {'count': 0, 'list': []}
 
     while True:
+        out = 'offset {} \r'.format(offset)
+        sys.stdout.write(out)
+        sys.stdout.flush()
         params = {
             'bizcircle_id': biz_circle_id,
             'group_type': 'community',
@@ -185,6 +188,7 @@ def update_db(db_session, biz_circle, communities):
             # 去重 TODO
             cid = community.id
             if cid in community_id_set:
+                print('ignore cid {}'.format(cid))
                 continue
             community_id_set.add(cid)
 
