@@ -189,7 +189,7 @@ def update_db(db_session, biz_circle, communities):
         # 去重 TODO
         cid = community_info['community_id']
         if cid in community_id_set:
-            print('ignore cid {}'.format(cid))
+            # print('ignore community id {}'.format(cid))
             continue
         community_id_set.add(cid)
 
